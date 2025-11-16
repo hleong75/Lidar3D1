@@ -43,6 +43,8 @@ def test_ign_downloader():
     for i, layer in enumerate(downloader.LIDAR_LAYERS, 1):
         print(f"  {i}. {layer}")
     print()
+    print("Note: New layer names added for Nov 2025 IGN NUALID product update")
+    print()
     
     # Test 2: Validate bounding box
     print("Test 2: Validate bounding box")
@@ -59,7 +61,7 @@ def test_ign_downloader():
     print("Test 3: Query IGN WFS service")
     print("-" * 70)
     print("Attempting to connect to IGN WFS service...")
-    print("This will try up to 7 different configurations automatically.")
+    print("This will try up to 13 different configurations automatically.")
     print()
     
     try:
@@ -89,7 +91,7 @@ def test_ign_downloader():
         print(f"❌ FAILED: {e}")
         print()
         print("This error indicates:")
-        print("- All 7 WFS configurations were tried and failed")
+        print("- All 13 WFS configurations were tried and failed")
         print("- The IGN API may have changed beyond current fallbacks")
         print("- Or the service might be temporarily unavailable")
         print()
@@ -112,7 +114,7 @@ def test_ign_downloader():
     print("=" * 70)
     print()
     print("Summary of improvements:")
-    print("✓ Tries 3 different layer name variations")
+    print("✓ Tries 6 different layer name variations")
     print("✓ Falls back between WFS 2.0.0 and WFS 1.1.0")
     print("✓ Tests multiple output format specifications")
     print("✓ Provides detailed error messages")

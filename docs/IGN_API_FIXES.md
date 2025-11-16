@@ -28,7 +28,10 @@ The downloader attempts these layer names in order:
 
 ```python
 LIDAR_LAYERS = [
-    "LIDARHD_FXX_1-0:dalles",  # Updated layer for France-wide coverage
+    "NUALHD_1-0:dalles",        # New NUALID product layer (Nov 2025)
+    "LIDARHD-NUALID:dalles",    # Alternative NUALID naming
+    "LIDARHD_NUALID:dalles",    # Underscore variant
+    "LIDARHD_FXX_1-0:dalles",   # Previous layer name for France
     "LIDARHD_1-0:dalles",       # Original layer name
     "LIDARHD:dalles",           # Simplified version
 ]
@@ -42,7 +45,7 @@ LIDAR_LAYERS = [
     'service': 'WFS',
     'version': '2.0.0',
     'request': 'GetFeature',
-    'typeNames': 'LIDARHD_FXX_1-0:dalles',  # Plural!
+    'typeNames': 'NUALHD_1-0:dalles',  # Plural! (New Nov 2025 layer name)
     'outputFormat': 'application/json',
     'bbox': '2.35,48.85,2.36,48.86,EPSG:4326',
     'count': 1000  # WFS 2.0.0 parameter
@@ -55,7 +58,7 @@ LIDAR_LAYERS = [
     'service': 'WFS',
     'version': '1.1.0',
     'request': 'GetFeature',
-    'typeName': 'LIDARHD_FXX_1-0:dalles',  # Singular!
+    'typeName': 'NUALHD_1-0:dalles',  # Singular! (New Nov 2025 layer name)
     'outputFormat': 'application/json',
     'bbox': '2.35,48.85,2.36,48.86,EPSG:4326',
     'maxFeatures': 1000  # WFS 1.1.0 parameter
@@ -81,10 +84,10 @@ Handles various property name conventions:
 
 ## How It Works
 
-The downloader attempts up to 7 different configurations:
+The downloader attempts up to 13 different configurations:
 
-1. Try each layer name with WFS 2.0.0 + `application/json` (3 attempts)
-2. Try each layer name with WFS 1.1.0 + `application/json` (3 attempts)
+1. Try each of 6 layer names with WFS 2.0.0 + `application/json` (6 attempts)
+2. Try each of 6 layer names with WFS 1.1.0 + `application/json` (6 attempts)
 3. Try first layer name with WFS 2.0.0 + `json` (1 attempt)
 
 Once a configuration succeeds, it's used for all subsequent requests in that session.
@@ -98,9 +101,9 @@ ERROR - Failed to query IGN WFS service: 400 Client Error: Bad Request
 
 ### After Fix
 ```
-ERROR - Failed to query IGN WFS service after trying 7 configurations. 
+ERROR - Failed to query IGN WFS service after trying 13 configurations. 
 The API may have changed or the service may be unavailable. 
-Tried layer names: LIDARHD_FXX_1-0:dalles, LIDARHD_1-0:dalles, LIDARHD:dalles
+Tried layer names: NUALHD_1-0:dalles, LIDARHD-NUALID:dalles, LIDARHD_NUALID:dalles, LIDARHD_FXX_1-0:dalles, LIDARHD_1-0:dalles, LIDARHD:dalles
 ```
 
 The improved error message helps diagnose:

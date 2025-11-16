@@ -11,7 +11,8 @@ for url: https://data.geopf.fr/wfs?...
 
 ## Root Cause
 The IGN GeoPF WFS service has evolved over time:
-- Layer names have been updated (e.g., `LIDARHD_1-0:dalles` → `LIDARHD_FXX_1-0:dalles`)
+- Layer names have been updated multiple times (e.g., `LIDARHD_1-0:dalles` → `LIDARHD_FXX_1-0:dalles` → `NUALHD_1-0:dalles`)
+- November 2025: New NUALID product with updated layer naming scheme
 - WFS version requirements may vary
 - Property names in responses may differ
 - Output format specifications can be strict
@@ -21,17 +22,23 @@ The original implementation used a single, hardcoded configuration that could fa
 ## Solution Implemented
 
 ### 1. Robust Fallback Mechanism
-The downloader now tries **7 different configurations** automatically:
+The downloader now tries **13 different configurations** automatically:
 
 | Attempt | Layer Name | WFS Version | Type Parameter | Count Parameter |
 |---------|------------|-------------|----------------|-----------------|
-| 1 | LIDARHD_FXX_1-0:dalles | 2.0.0 | typeNames | count=1000 |
-| 2 | LIDARHD_1-0:dalles | 2.0.0 | typeNames | count=1000 |
-| 3 | LIDARHD:dalles | 2.0.0 | typeNames | count=1000 |
-| 4 | LIDARHD_FXX_1-0:dalles | 1.1.0 | typeName | maxFeatures=1000 |
-| 5 | LIDARHD_1-0:dalles | 1.1.0 | typeName | maxFeatures=1000 |
-| 6 | LIDARHD:dalles | 1.1.0 | typeName | maxFeatures=1000 |
-| 7 | LIDARHD_FXX_1-0:dalles | 2.0.0 | typeNames | count=1000, format=json |
+| 1 | NUALHD_1-0:dalles | 2.0.0 | typeNames | count=1000 |
+| 2 | LIDARHD-NUALID:dalles | 2.0.0 | typeNames | count=1000 |
+| 3 | LIDARHD_NUALID:dalles | 2.0.0 | typeNames | count=1000 |
+| 4 | LIDARHD_FXX_1-0:dalles | 2.0.0 | typeNames | count=1000 |
+| 5 | LIDARHD_1-0:dalles | 2.0.0 | typeNames | count=1000 |
+| 6 | LIDARHD:dalles | 2.0.0 | typeNames | count=1000 |
+| 7 | NUALHD_1-0:dalles | 1.1.0 | typeName | maxFeatures=1000 |
+| 8 | LIDARHD-NUALID:dalles | 1.1.0 | typeName | maxFeatures=1000 |
+| 9 | LIDARHD_NUALID:dalles | 1.1.0 | typeName | maxFeatures=1000 |
+| 10 | LIDARHD_FXX_1-0:dalles | 1.1.0 | typeName | maxFeatures=1000 |
+| 11 | LIDARHD_1-0:dalles | 1.1.0 | typeName | maxFeatures=1000 |
+| 12 | LIDARHD:dalles | 1.1.0 | typeName | maxFeatures=1000 |
+| 13 | NUALHD_1-0:dalles | 2.0.0 | typeNames | count=1000, format=json |
 
 ### 2. Flexible Property Extraction
 Handles various property name conventions:
@@ -48,9 +55,9 @@ ERROR - Failed to query IGN WFS service: 400 Client Error: Bad Request
 
 **After:**
 ```
-ERROR - Failed to query IGN WFS service after trying 7 configurations. 
+ERROR - Failed to query IGN WFS service after trying 13 configurations. 
 The API may have changed or the service may be unavailable. 
-Tried layer names: LIDARHD_FXX_1-0:dalles, LIDARHD_1-0:dalles, LIDARHD:dalles
+Tried layer names: NUALHD_1-0:dalles, LIDARHD-NUALID:dalles, LIDARHD_NUALID:dalles, LIDARHD_FXX_1-0:dalles, LIDARHD_1-0:dalles, LIDARHD:dalles
 ```
 
 ## Files Changed
@@ -79,8 +86,13 @@ Tried layer names: LIDARHD_FXX_1-0:dalles, LIDARHD_1-0:dalles, LIDARHD:dalles
 
 5. **test_ign_fix.py** (new file)
    - Demonstration script showing the fix in action
-   - Shows all 7 configurations being tried
+   - Shows all 13 configurations being tried
    - Provides clear before/after comparison
+
+6. **FIX_SUMMARY.md** (updated)
+   - Updated to reflect new layer names for Nov 2025
+   - Updated configuration count from 7 to 13
+   - Added NUALHD and NUALID layer name variations
 
 ## Testing
 
@@ -119,7 +131,7 @@ python test_ign_fix.py
 ### Performance
 - Minimal impact: First successful configuration is used for all subsequent requests
 - Typically succeeds on first or second attempt
-- Maximum overhead: ~7 HTTP requests (only if all fail)
+- Maximum overhead: ~13 HTTP requests (only if all fail)
 
 ## Usage
 

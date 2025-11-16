@@ -28,8 +28,12 @@ class IGNDownloader:
     
     # Layer names to try (IGN sometimes updates these)
     # Try multiple variations to handle API changes
+    # Based on IGN's evolving API and product naming (Nov 2025 update)
     LIDAR_LAYERS = [
-        "LIDARHD_FXX_1-0:dalles",  # Updated layer name for France
+        "NUALHD_1-0:dalles",        # New NUALID product layer (Nov 2025)
+        "LIDARHD-NUALID:dalles",    # Alternative NUALID naming
+        "LIDARHD_NUALID:dalles",    # Underscore variant
+        "LIDARHD_FXX_1-0:dalles",   # Previous layer name for France
         "LIDARHD_1-0:dalles",       # Original layer name
         "LIDARHD:dalles",           # Simplified version
     ]
