@@ -75,7 +75,7 @@ class IGNDownloader:
             'service': 'WFS',
             'version': '2.0.0',
             'request': 'GetFeature',
-            'typename': self.LIDAR_LAYER,
+            'typeNames': self.LIDAR_LAYER,  # Note: 'typeNames' (plural) is required for WFS 2.0.0
             'outputFormat': 'application/json',
             'bbox': f"{lon_min},{lat_min},{lon_max},{lat_max},EPSG:4326",
             'count': 1000  # Maximum number of tiles to return
