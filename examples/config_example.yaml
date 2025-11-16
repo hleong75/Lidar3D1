@@ -1,0 +1,50 @@
+# Example configuration for Lidar3D
+# This example shows how to process LiDAR data from Paris
+
+input:
+  # Path to LiDAR file (LAS or LAZ format)
+  lidar_file: "data/paris_lidar.laz"
+  
+  # OSM bounding box [lat_min, lon_min, lat_max, lon_max]
+  # Example: Area around Eiffel Tower
+  osm_bbox: [48.8566, 2.3522, 48.8606, 2.3562]
+
+output:
+  # Output 3DS file path
+  file: "output/paris_model.3ds"
+  
+  # Texture file name (will be saved in same directory as 3DS file)
+  texture_file: "paris_texture.png"
+  
+  # Texture size in pixels (power of 2 recommended)
+  texture_size: 2048
+
+processing:
+  # Point cloud downsampling voxel size in meters
+  # Larger values = faster processing but less detail
+  # Set to 0 or null to disable downsampling
+  point_cloud_downsample: 0.5
+  
+  # Mesh resolution (affects detail level)
+  mesh_resolution: 1.0
+  
+  # Mesh generation method: 'poisson' or 'ball_pivoting'
+  # Poisson: smoother, better for complete surfaces
+  # Ball pivoting: preserves sharp features, better for incomplete data
+  mesh_method: "poisson"
+  
+  # Texture quality: 'high', 'medium', or 'low'
+  texture_quality: "high"
+  
+  # Remove statistical outliers from point cloud
+  remove_outliers: true
+  
+  # Simplify mesh to reduce triangle count
+  simplify_mesh: false
+  
+  # Target number of triangles (only used if simplify_mesh is true)
+  target_triangles: 100000
+
+logging:
+  # Logging level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
