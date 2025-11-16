@@ -56,7 +56,7 @@ class TestIGNDownloader(unittest.TestCase):
     @patch('lidar3d.loaders.ign_downloader.requests.get')
     def test_find_tiles_success(self, mock_get):
         """Test successful tile finding."""
-        # Mock response
+        # Mock response - return success on first call
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -89,12 +89,17 @@ class TestIGNDownloader(unittest.TestCase):
         self.assertEqual(tiles[0]['url'], 'https://example.com/tile1.laz')
         self.assertEqual(tiles[1]['name'], 'TILE_002')
         
-        # Verify that WFS 2.0.0 parameters are correct
-        mock_get.assert_called_once()
-        call_args = mock_get.call_args
-        params = call_args[1]['params']
-        self.assertIn('typeNames', params, 'WFS 2.0.0 requires typeNames (plural) parameter')
-        self.assertNotIn('typename', params, 'typename (singular) is for WFS 1.x only')
+        # Verify that a WFS request was made (may try multiple configurations)
+        self.assertGreaterEqual(mock_get.call_count, 1)
+        
+        # Check that at least one call had valid WFS parameters
+        found_valid_params = False
+        for call in mock_get.call_args_list:
+            params = call[1].get('params', {})
+            if 'typeNames' in params or 'typeName' in params:
+                found_valid_params = True
+                break
+        self.assertTrue(found_valid_params, 'Should have WFS parameters in at least one call')
     
     @patch('lidar3d.loaders.ign_downloader.requests.get')
     def test_find_tiles_no_features(self, mock_get):
@@ -111,13 +116,20 @@ class TestIGNDownloader(unittest.TestCase):
     
     @patch('lidar3d.loaders.ign_downloader.requests.get')
     def test_find_tiles_request_error(self, mock_get):
-        """Test tile finding with request error."""
-        mock_get.side_effect = Exception("Network error")
+        """Test tile finding with all requests failing."""
+        # Mock all requests to fail
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_response.text = "Bad Request"
+        mock_get.return_value = mock_response
         
         bbox = [2.35, 48.85, 2.36, 48.86]
         
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError) as context:
             self.downloader.find_tiles(bbox)
+        
+        # Check that error message mentions trying multiple configurations
+        self.assertIn('configurations', str(context.exception).lower())
     
     @patch('lidar3d.loaders.ign_downloader.requests.get')
     def test_download_tile_success(self, mock_get):
