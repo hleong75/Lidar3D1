@@ -43,7 +43,8 @@ class Config:
         Args:
             config_dict: Configuration dictionary (uses defaults if None)
         """
-        self.config = self.DEFAULT_CONFIG.copy()
+        import copy
+        self.config = copy.deepcopy(self.DEFAULT_CONFIG)
         if config_dict:
             self._update_recursive(self.config, config_dict)
     
