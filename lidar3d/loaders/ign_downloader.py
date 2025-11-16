@@ -26,8 +26,13 @@ class IGNDownloader:
     # Public WFS endpoint (no API key required for basic access)
     WFS_BASE_URL = "https://data.geopf.fr/wfs"
     
-    # Layer name for LiDAR HD data
-    LIDAR_LAYER = "LIDARHD_1-0:dalles"
+    # Layer names to try (IGN sometimes updates these)
+    # Try multiple variations to handle API changes
+    LIDAR_LAYERS = [
+        "LIDARHD_FXX_1-0:dalles",  # Updated layer name for France
+        "LIDARHD_1-0:dalles",       # Original layer name
+        "LIDARHD:dalles",           # Simplified version
+    ]
     
     def __init__(self, output_dir: Optional[str] = None):
         """
@@ -44,6 +49,36 @@ class IGNDownloader:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info(f"IGN Downloader initialized. Output directory: {self.output_dir}")
+    
+    def _try_wfs_request(self, params: dict) -> Optional[dict]:
+        """
+        Try a WFS request with given parameters.
+        
+        Args:
+            params: WFS request parameters
+            
+        Returns:
+            JSON response data if successful, None otherwise
+        """
+        try:
+            logger.debug(f"Trying WFS request with params: {params}")
+            response = requests.get(self.WFS_BASE_URL, params=params, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Check if we got valid GeoJSON response
+                if 'features' in data:
+                    return data
+                else:
+                    logger.debug(f"Response missing 'features' key")
+                    return None
+            else:
+                logger.debug(f"Request failed with status {response.status_code}: {response.text[:200]}")
+                return None
+                
+        except Exception as e:
+            logger.debug(f"Request failed with exception: {e}")
+            return None
     
     def find_tiles(self, bbox: List[float]) -> List[dict]:
         """
@@ -70,56 +105,95 @@ class IGNDownloader:
         if lon_min >= lon_max or lat_min >= lat_max:
             raise ValueError("Invalid bounding box: min values must be less than max values")
         
-        # Build WFS GetFeature request
-        params = {
-            'service': 'WFS',
-            'version': '2.0.0',
-            'request': 'GetFeature',
-            'typeNames': self.LIDAR_LAYER,  # Note: 'typeNames' (plural) is required for WFS 2.0.0
-            'outputFormat': 'application/json',
-            'bbox': f"{lon_min},{lat_min},{lon_max},{lat_max},EPSG:4326",
-            'count': 1000  # Maximum number of tiles to return
-        }
+        # Try multiple WFS configurations to handle API changes
+        # IGN sometimes updates layer names and WFS versions
+        configurations = []
         
-        try:
-            logger.debug(f"Querying WFS: {self.WFS_BASE_URL}")
-            response = requests.get(self.WFS_BASE_URL, params=params, timeout=30)
-            response.raise_for_status()
+        # Try each layer name with WFS 2.0.0
+        for layer in self.LIDAR_LAYERS:
+            configurations.append({
+                'service': 'WFS',
+                'version': '2.0.0',
+                'request': 'GetFeature',
+                'typeNames': layer,  # WFS 2.0.0 uses 'typeNames' (plural)
+                'outputFormat': 'application/json',
+                'bbox': f"{lon_min},{lat_min},{lon_max},{lat_max},EPSG:4326",
+                'count': 1000
+            })
+        
+        # Try with WFS 1.1.0 as fallback (uses different parameter names)
+        for layer in self.LIDAR_LAYERS:
+            configurations.append({
+                'service': 'WFS',
+                'version': '1.1.0',
+                'request': 'GetFeature',
+                'typeName': layer,  # WFS 1.1.0 uses 'typeName' (singular)
+                'outputFormat': 'application/json',
+                'bbox': f"{lon_min},{lat_min},{lon_max},{lat_max},EPSG:4326",
+                'maxFeatures': 1000  # WFS 1.1.0 uses 'maxFeatures' instead of 'count'
+            })
+        
+        # Try alternative output formats
+        for layer in self.LIDAR_LAYERS[:1]:  # Only try first layer with alternative formats
+            configurations.append({
+                'service': 'WFS',
+                'version': '2.0.0',
+                'request': 'GetFeature',
+                'typeNames': layer,
+                'outputFormat': 'json',  # Some servers prefer 'json' over 'application/json'
+                'bbox': f"{lon_min},{lat_min},{lon_max},{lat_max},EPSG:4326",
+                'count': 1000
+            })
+        
+        # Try each configuration until one works
+        data = None
+        successful_config = None
+        
+        for i, config in enumerate(configurations, 1):
+            logger.debug(f"Trying WFS configuration {i}/{len(configurations)}")
+            data = self._try_wfs_request(config)
+            if data:
+                successful_config = config
+                logger.info(f"Successfully connected with configuration {i}")
+                logger.debug(f"Working config: {config}")
+                break
+        
+        if not data:
+            error_msg = (
+                f"Failed to query IGN WFS service after trying {len(configurations)} configurations. "
+                f"The API may have changed or the service may be unavailable. "
+                f"Tried layer names: {', '.join(self.LIDAR_LAYERS)}"
+            )
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        
+        features = data.get('features', [])
+        
+        if not features:
+            logger.warning(f"No LiDAR HD tiles found in bbox {bbox}")
+            return []
+        
+        tiles = []
+        for feature in features:
+            props = feature.get('properties', {})
             
-            data = response.json()
-            features = data.get('features', [])
+            # Extract download URL - try multiple property names
+            url_telechargement = props.get('url_telech') or props.get('url_telechargement') or props.get('url')
+            if not url_telechargement:
+                logger.debug(f"Feature missing download URL, properties: {props.keys()}")
+                continue
             
-            if not features:
-                logger.warning(f"No LiDAR HD tiles found in bbox {bbox}")
-                return []
+            tile_info = {
+                'name': props.get('nom_dalle') or props.get('nom') or 'unknown',
+                'url': url_telechargement,
+                'date': props.get('date_vol') or props.get('date') or 'unknown',
+                'project': props.get('projet') or props.get('project') or 'unknown',
+            }
             
-            tiles = []
-            for feature in features:
-                props = feature.get('properties', {})
-                
-                # Extract download URL
-                url_telechargement = props.get('url_telech')
-                if not url_telechargement:
-                    continue
-                
-                tile_info = {
-                    'name': props.get('nom_dalle', 'unknown'),
-                    'url': url_telechargement,
-                    'date': props.get('date_vol', 'unknown'),
-                    'project': props.get('projet', 'unknown'),
-                }
-                
-                tiles.append(tile_info)
-            
-            logger.info(f"Found {len(tiles)} LiDAR HD tiles")
-            return tiles
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to query IGN WFS service: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Error parsing WFS response: {e}")
-            raise
+            tiles.append(tile_info)
+        
+        logger.info(f"Found {len(tiles)} LiDAR HD tiles")
+        return tiles
     
     def download_tile(self, tile_info: dict) -> Optional[Path]:
         """

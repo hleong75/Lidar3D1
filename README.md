@@ -63,6 +63,8 @@ python -m lidar3d.main \
 
 **Note**: The `--ign-bbox` format is `lon_min,lat_min,lon_max,lat_max` (longitude first, unlike OSM bbox).
 
+**Recent Fix**: The IGN downloader now includes robust fallback mechanisms to handle API changes. It automatically tries multiple WFS versions and layer name variations. See [docs/IGN_API_FIXES.md](docs/IGN_API_FIXES.md) for details.
+
 ### Basic Usage (Manual File)
 
 ```bash
@@ -191,6 +193,15 @@ This creates a sample 3D model from synthetic LiDAR data and shows all processin
 6. **Export 3DS**: Write mesh and textures to 3DS format
 
 ## Troubleshooting
+
+### IGN Download Issues (400 Bad Request)
+
+If you encounter 400 errors when downloading from IGN:
+- The downloader now automatically tries multiple WFS configurations
+- Enable debug logging to see which configuration works: `--log-level DEBUG`
+- See detailed troubleshooting guide: [docs/IGN_API_FIXES.md](docs/IGN_API_FIXES.md)
+- Ensure your bounding box is within France (lon: -5 to 10, lat: 41 to 51)
+- Check IGN service status at https://geoservices.ign.fr/
 
 ### OSM Data Loading Fails
 - This is normal if network is unavailable or bbox is too large
