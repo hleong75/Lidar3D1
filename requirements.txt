@@ -1,0 +1,31 @@
+# Core dependencies for LiDAR and 3D processing
+laspy[lazrs]>=2.5.0  # LiDAR data reading (LAS/LAZ format)
+numpy>=1.24.0
+pandas>=2.0.0
+
+# 3D processing and meshing
+open3d>=0.18.0
+trimesh>=4.0.0
+scipy>=1.11.0
+
+# OSM data processing
+overpy>=0.7.0
+osmnx>=1.9.0
+shapely>=2.0.0
+geopandas>=0.14.0
+
+# Image processing for textures
+Pillow>=10.0.0
+opencv-python>=4.8.0
+
+# 3DS export
+py3ds>=0.1.0
+
+# Utilities
+pyyaml>=6.0
+requests>=2.31.0
+tqdm>=4.66.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
