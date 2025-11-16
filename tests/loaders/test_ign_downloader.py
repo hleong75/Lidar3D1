@@ -88,6 +88,13 @@ class TestIGNDownloader(unittest.TestCase):
         self.assertEqual(tiles[0]['name'], 'TILE_001')
         self.assertEqual(tiles[0]['url'], 'https://example.com/tile1.laz')
         self.assertEqual(tiles[1]['name'], 'TILE_002')
+        
+        # Verify that WFS 2.0.0 parameters are correct
+        mock_get.assert_called_once()
+        call_args = mock_get.call_args
+        params = call_args[1]['params']
+        self.assertIn('typeNames', params, 'WFS 2.0.0 requires typeNames (plural) parameter')
+        self.assertNotIn('typename', params, 'typename (singular) is for WFS 1.x only')
     
     @patch('lidar3d.loaders.ign_downloader.requests.get')
     def test_find_tiles_no_features(self, mock_get):
