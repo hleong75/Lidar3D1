@@ -57,6 +57,25 @@ Examples:
     )
     
     parser.add_argument(
+        '--ign-auto-download',
+        action='store_true',
+        help='Automatically download LiDAR data from IGN for the given bbox'
+    )
+    
+    parser.add_argument(
+        '--ign-bbox',
+        type=str,
+        help='Geographic bounding box for IGN download as "lon_min,lat_min,lon_max,lat_max"'
+    )
+    
+    parser.add_argument(
+        '--max-tiles',
+        type=int,
+        default=10,
+        help='Maximum number of tiles to download from IGN (default: 10)'
+    )
+    
+    parser.add_argument(
         '--osm-bbox',
         type=str,
         help='OSM bounding box as "lat_min,lon_min,lat_max,lon_max"'
@@ -153,6 +172,35 @@ def main():
     logger = logging.getLogger(__name__)
     
     try:
+        # Handle automatic IGN download
+        lidar_file = None
+        if args.ign_auto_download:
+            if not args.ign_bbox:
+                logger.error("--ign-bbox is required when using --ign-auto-download")
+                return 1
+            
+            logger.info("Automatic IGN LiDAR download enabled")
+            
+            # Parse IGN bbox
+            try:
+                ign_bbox = [float(x.strip()) for x in args.ign_bbox.split(',')]
+                if len(ign_bbox) != 4:
+                    raise ValueError()
+            except:
+                logger.error("Invalid IGN bbox format. Use: lon_min,lat_min,lon_max,lat_max")
+                return 1
+            
+            # Download data
+            from lidar3d.loaders.ign_downloader import download_ign_data
+            logger.info(f"Downloading IGN LiDAR data for bbox: {ign_bbox}")
+            lidar_file = download_ign_data(ign_bbox, max_tiles=args.max_tiles)
+            
+            if not lidar_file:
+                logger.error("Failed to download IGN LiDAR data")
+                return 1
+            
+            logger.info(f"Successfully downloaded LiDAR data to: {lidar_file}")
+        
         # Load or create configuration
         if args.config:
             logger.info(f"Loading configuration from {args.config}")
@@ -162,7 +210,10 @@ def main():
             config = Config()
             
             # Set values from command line
-            if args.input:
+            if lidar_file:
+                # Use downloaded file
+                config.set('input.lidar_file', str(lidar_file))
+            elif args.input:
                 config.set('input.lidar_file', args.input)
             
             if args.osm_bbox:
@@ -175,6 +226,16 @@ def main():
                 except:
                     logger.error("Invalid OSM bbox format. Use: lat_min,lon_min,lat_max,lon_max")
                     return 1
+            elif args.ign_bbox and not args.osm_bbox:
+                # Use IGN bbox for OSM if not explicitly provided
+                try:
+                    ign_bbox = [float(x.strip()) for x in args.ign_bbox.split(',')]
+                    # Convert lon_min,lat_min,lon_max,lat_max to lat_min,lon_min,lat_max,lon_max
+                    osm_bbox = [ign_bbox[1], ign_bbox[0], ign_bbox[3], ign_bbox[2]]
+                    config.set('input.osm_bbox', osm_bbox)
+                    logger.info(f"Using IGN bbox for OSM data: {osm_bbox}")
+                except:
+                    pass
             
             if args.output:
                 config.set('output.file', args.output)

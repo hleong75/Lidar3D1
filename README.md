@@ -42,7 +42,28 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Basic Usage
+### Automatic IGN Data Download (NEW!)
+
+The program can now automatically download LiDAR HD data from IGN:
+
+```bash
+# Automatic download mode - downloads data for the specified bounding box
+python -m lidar3d.main \
+  --ign-auto-download \
+  --ign-bbox "2.35,48.85,2.36,48.86" \
+  --output paris_model.3ds
+
+# Specify max number of tiles to download (default: 10)
+python -m lidar3d.main \
+  --ign-auto-download \
+  --ign-bbox "2.35,48.85,2.36,48.86" \
+  --max-tiles 5 \
+  --output output.3ds
+```
+
+**Note**: The `--ign-bbox` format is `lon_min,lat_min,lon_max,lat_max` (longitude first, unlike OSM bbox).
+
+### Basic Usage (Manual File)
 
 ```bash
 python -m lidar3d.main --input lidar_data.laz --osm-bbox "lat_min,lon_min,lat_max,lon_max" --output output.3ds
@@ -119,7 +140,8 @@ This creates a sample 3D model from synthetic LiDAR data and shows all processin
 ### LiDAR Data (IGN)
 - Format: LAS/LAZ (ASPRS standard)
 - Source: IGN (Institut national de l'information géographique et forestière)
-- Download: https://geoservices.ign.fr/lidarhd
+- **Automatic Download**: Use `--ign-auto-download` flag to download data automatically
+- Manual Download: https://geoservices.ign.fr/lidarhd
 
 ### OpenStreetMap Data
 - Automatically fetched via Overpass API
@@ -145,15 +167,18 @@ This creates a sample 3D model from synthetic LiDAR data and shows all processin
 ## Command-Line Options
 
 ```
---input, -i         Path to LiDAR file (LAS/LAZ)
---osm-bbox          OSM bounding box (lat_min,lon_min,lat_max,lon_max)
---output, -o        Output 3DS file path
---texture-size      Texture resolution (default: 2048)
---downsample        Voxel size for downsampling (default: 0.5)
---mesh-method       Meshing algorithm: poisson or ball_pivoting
---log-level         Logging level: DEBUG, INFO, WARNING, ERROR
---config, -c        Path to YAML configuration file
---generate-config   Generate example configuration and exit
+--input, -i              Path to LiDAR file (LAS/LAZ)
+--ign-auto-download      Automatically download LiDAR data from IGN
+--ign-bbox               Geographic bbox for IGN download (lon_min,lat_min,lon_max,lat_max)
+--max-tiles              Maximum number of tiles to download (default: 10)
+--osm-bbox               OSM bounding box (lat_min,lon_min,lat_max,lon_max)
+--output, -o             Output 3DS file path
+--texture-size           Texture resolution (default: 2048)
+--downsample             Voxel size for downsampling (default: 0.5)
+--mesh-method            Meshing algorithm: poisson or ball_pivoting
+--log-level              Logging level: DEBUG, INFO, WARNING, ERROR
+--config, -c             Path to YAML configuration file
+--generate-config        Generate example configuration and exit
 ```
 
 ## Processing Pipeline
@@ -184,7 +209,24 @@ This creates a sample 3D model from synthetic LiDAR data and shows all processin
 
 ## Examples
 
-### Process Small Area
+### Automatic Download from IGN (NEW!)
+```bash
+# Download and process data for a small area in Paris
+python -m lidar3d.main \
+  --ign-auto-download \
+  --ign-bbox "2.352,48.856,2.353,48.857" \
+  --output paris_small.3ds \
+  --downsample 0.3
+
+# Download limited tiles for faster processing
+python -m lidar3d.main \
+  --ign-auto-download \
+  --ign-bbox "2.35,48.85,2.36,48.86" \
+  --max-tiles 3 \
+  --output quick_test.3ds
+```
+
+### Process Small Area (Manual File)
 ```bash
 python -m lidar3d.main \
   --input small_area.laz \
@@ -193,7 +235,7 @@ python -m lidar3d.main \
   --downsample 0.3
 ```
 
-### High Quality Model
+### High Quality Model (Manual File)
 ```bash
 python -m lidar3d.main \
   --input data.laz \
